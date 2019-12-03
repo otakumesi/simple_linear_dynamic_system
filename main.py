@@ -7,42 +7,49 @@ class LinearDynamicSystem:
     def __init__(self, p, mu, gamma, sigma):
         self.p = p
         self.x = mu
+        self.H = 1
         self.gamma = gamma
         self.sigma = sigma
-        self.xs = []
+        self.x_history = []
 
     def fit(self, observations):
+
         for i, obs in enumerate(observations):
-            self.z = normal(loc=self.x, scale=self.p)
+            pred_z, pred_p = self._perform_expectation(self.x)
 
-            if i > 0:
-                print("predicted p.d.f. of latent variable = {:.3f}, {:.3f}"
-                      .format(self.z, log(np.prod(self.xs))))
+            new_x, new_p = self._perform_maximization(obs, pred_z, pred_p)
+            self.x = new_x
+            self.p = new_p
 
-            pred_z, pred_x, pred_p = self._perform_expectation(self.z)
-            self.p = pred_p
-
-            x = self._perform_maximization(pred_x, obs, pred_z)
-            self.xs.append(x)
+            self.x_history.append(new_x)
 
             print("Answer {}: ".format(i+1))
             print("log-scaled likelihood = {:.3f}, "
                   "updated p.d.f. of latent value = {:.3f}:"
-                  .format(log(x), pred_z))
+                  .format(log(new_x), pred_z))
 
-    def _perform_expectation(self, z):
-        pred_z = z + self._gen_noize(self.gamma)
-        pred_x = pred_z + self._gen_noize(self.sigma)
+            if i > 0:
+                print("predicted p.d.f. of latent variable = {:.3f}, {:.3f}"
+                      .format(self.x, log(np.prod(self.x_history))))
+
+
+
+    def _perform_expectation(self, x):
+        pred_z = x
         pred_p = self.p + self.gamma
-        return pred_z, pred_x, pred_p
+        return pred_z, pred_p
+
+    def _karman_gain(self, p, s):
+        return p / (p + s)
 
     def _gen_noize(self, var):
         return normal(loc=0, scale=var)
 
-    def _perform_maximization(self, x, obs, mu):
-        k = self.p / (self.p + self.sigma)
-        x = mu + k * (obs - x)
-        return x
+    def _perform_maximization(self, obs, z, p):
+        k = self._karman_gain(p, self.sigma)
+        new_x = z + k * (obs - z)
+        new_p = (1 - k) * p
+        return new_x, new_p
 
 
 def generate_observation(b):

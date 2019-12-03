@@ -1,55 +1,47 @@
 import numpy as np
-from numpy import log
-from numpy.random import normal
+from scipy.stats import norm
 
 
 class LinearDynamicSystem:
-    def __init__(self, p, mu, gamma, sigma):
-        self.p = p
-        self.x = mu
-        self.H = 1
+    def __init__(self, gamma, sigma):
         self.gamma = gamma
         self.sigma = sigma
-        self.x_history = []
 
-    def fit(self, observations):
+        self.log_p_x_history = []
 
+    def fit(self, observations, mu, p):
+
+        _mu, _p = mu, p
         for i, obs in enumerate(observations):
-            pred_z, pred_p = self._perform_expectation(self.x)
+            pred_mu, pred_p = self._predict(_mu, _p)
 
-            new_x, new_p = self._perform_maximization(obs, pred_z, pred_p)
-            self.x = new_x
-            self.p = new_p
-
-            self.x_history.append(new_x)
+            _mu, _p, log_p_x = self._update(obs, pred_mu, pred_p)
+            self.log_p_x_history.append(log_p_x)
 
             print("Answer {}: ".format(i+1))
-            print("log-scaled likelihood = {:.3f}, "
-                  "updated p.d.f. of latent value = {:.3f}:"
-                  .format(log(new_x), pred_z))
 
             if i > 0:
                 print("predicted p.d.f. of latent variable = {:.3f}, {:.3f}"
-                      .format(self.x, log(np.prod(self.x_history))))
+                      .format(pred_mu, np.sum(self.log_p_x_history)))
 
+            print("log-scaled likelihood = {:.3f}, "
+                  "updated p.d.f. of latent value = {:.3f}:"
+                  .format(log_p_x, _mu))
 
-
-    def _perform_expectation(self, x):
-        pred_z = x
-        pred_p = self.p + self.gamma
-        return pred_z, pred_p
+    def _predict(self, mu, p):
+        pred_mu = mu
+        pred_p = p + self.gamma
+        return pred_mu, pred_p
 
     def _karman_gain(self, p, s):
         return p / (p + s)
 
-    def _gen_noize(self, var):
-        return normal(loc=0, scale=var)
-
-    def _perform_maximization(self, obs, z, p):
+    def _update(self, obs, mu, p):
         k = self._karman_gain(p, self.sigma)
-        new_x = z + k * (obs - z)
+        new_mu = mu + k * (obs - mu)
         new_p = (1 - k) * p
-        return new_x, new_p
+        log_p_x = norm.logpdf(x=obs, loc=new_mu, scale=new_p)
+        return new_mu, new_p, log_p_x
 
 
 def generate_observation(b):
@@ -71,5 +63,5 @@ print("initialized value...: X = {}, P_0 = {}, μ_0 = {}, Γ = {}, Σ = {}"
       .format(INPUT_X, INIT_P, INIT_MU, INIT_GAMMA, INIT_SIGMA))
 
 
-lds_model = LinearDynamicSystem(INIT_P, INIT_MU, INIT_GAMMA, INIT_SIGMA)
-lds_model.fit(INPUT_X)
+lds_model = LinearDynamicSystem(INIT_GAMMA, INIT_SIGMA)
+lds_model.fit(INPUT_X, INIT_MU, INIT_P)

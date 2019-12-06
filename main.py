@@ -36,11 +36,11 @@ class LinearDynamicSystem:
         pred_p = p + self.gamma
         return pred_mu, pred_p
 
-    def _karman_gain(self, p, s):
+    def _kalman_gain(self, p, s):
         return p / (p + s)
 
     def _update(self, obs, mu, p):
-        k = self._karman_gain(p, self.sigma)
+        k = self._kalman_gain(p, self.sigma)
         new_mu = mu + k * (obs - mu)
         new_p = (1 - k) * p
         log_p_x = norm.logpdf(x=obs, loc=new_mu, scale=np.sqrt(new_p))

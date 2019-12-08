@@ -52,7 +52,7 @@ class LinearDynamicSystem:
     def _predict(self, mu, p, obs):
         pred_mu = mu
         pred_p = p + self.gamma
-        log_p_x = norm.logpdf(x=obs, loc=pred_mu, scale=(np.pred_p + self.sigma))
+        log_p_x = norm.logpdf(x=obs, loc=pred_mu, scale=(pred_p + self.sigma))
         return pred_mu, pred_p, log_p_x
 
     def _kalman_gain(self, p, s):

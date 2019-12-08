@@ -52,7 +52,7 @@ class LinearDynamicSystem:
     def _predict(self, mu, p, obs):
         pred_mu = mu
         pred_p = p + self.gamma
-        log_p_x = norm.logpdf(x=obs, loc=pred_mu, scale=np.sqrt(pred_p))
+        log_p_x = norm.logpdf(x=obs, loc=pred_mu, scale=np.sqrt(pred_p + self.sigma))
         return pred_mu, pred_p, log_p_x
 
     def _kalman_gain(self, p, s):
@@ -82,7 +82,6 @@ class LinearDynamicSystem:
             pred_p = self.pred_p_history[i+1]
 
             j = current_p / pred_p
-            print(current_p, last_smoothed_p, j)
 
             last_smoothed_mu = current_mu + j * (last_smoothed_mu - pred_mu)
             last_smoothed_p = current_p + j ** 2 * (last_smoothed_p - pred_p)
